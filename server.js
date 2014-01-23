@@ -6,11 +6,15 @@ var fs = require('fs');
 
 var app = express();
 var packages = {};
+var custom_packages = {};
 var port = 3333;
-var storage = process.argv[2] || './package-data.json';
+var storage = './official-package-data.json';
+var custom_storage = './custom-package-data.json';
 
 if (fs.existsSync(storage)) {
 	packages = JSON.parse(fs.readFileSync(storage));
+	custom_packages = JSON.parse(fs.readFileSync(custom_storage));
+	packages = packages.concat(custom_packages);
 }
 
 app.configure(function () {
@@ -23,55 +27,54 @@ app.configure(function () {
 app.listen(port, function () {
 	console.log('simple-bower-registry');
 	console.log('---------------------');
-	console.log('           port: %d', port);
-	console.log('      data file: %s', storage);
-	console.log('packages loaded: %d', Object.keys(packages).length);
+	console.log('            port: %d', port);
+	console.log('       data file: %s', storage);
+	console.log('custom data file: %s', custom_storage);
+	console.log(' packages loaded: %d', Object.keys(packages).length);
 });
 
 app.get('/packages', function (request, response) {
 	var result = [];
-	for (var name in packages) {
+	packages.forEach(function(entry) {
 		result.push({
-			name: name,
-			url: packages[name]
+			name: entry.name,
+			url: entry.url
 		});
-	}
+	});
 	response.send(result);
 });
 
+// TODO test this
 app.post('/packages', function (request, response) {
-	packages[request.body.name] = request.body.url;
-	fs.writeFile(storage, JSON.stringify(packages), function (err) {
+	custom_packages.push(request.body.url);
+	fs.writeFile(custom_storage, JSON.stringify(custom_packages), function (err) {
 		if (err) {
-			console.log('Failed to write the package data to disk!');
+			console.log('Failed to write the custom package data to disk!');
 			console.log(err);
 		}
 	});
 	response.send(201);
 });
 
-app.get('/packages/:name', function (request, response) {
-	var name = request.params.name;
 
-	if (!packages[name]) {
+app.get('/packages/:name', function (request, response) {
+	var entry = packages.filter(function(entry) {
+    return entry.name === request.params.name;
+  });
+	if (entry.length === 0) {
 		response.send(404);
 	} else {
-		response.send({
-			name: name,
-			url: packages[name]
-		});
+		response.send(entry[0]);
 	}
 });
 
 app.get('/packages/search/:name', function (request, response) {
-	var results = Object.keys(packages).filter(function (pkgName) {
-		return pkgName.indexOf(request.params.name) !== -1;
-	}).map(function (pkgName) {
-		return {
-			name: pkgName,
-			url: packages[pkgName]
-		};
-	});
-
-	response.send(results);
+	var entrys = packages.filter(function(entry) {
+    return entry.name.indexOf(request.params.name) !== -1;
+  });
+	if (entrys.length === 0) {
+		response.send(404);
+	} else {
+		response.send(entrys);
+	}
 });

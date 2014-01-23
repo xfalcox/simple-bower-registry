@@ -1,2 +1,3 @@
 node_modules
-package-data.json
+custom-package-data.json
+official-package-data.json
