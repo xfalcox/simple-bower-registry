@@ -15,6 +15,13 @@ if (fs.existsSync(storage)) {
 	packages = JSON.parse(fs.readFileSync(storage));
 	custom_packages = JSON.parse(fs.readFileSync(custom_storage));
 	packages = packages.concat(custom_packages);
+
+	// Fix to git being blocked by proxy, for some reason bower doesn't appear to respect
+	// git config insteadOf
+	packages.forEach(function(entry) {
+		entry.url = entry.url.replace('git://', 'https://');
+		});
+	});
 }
 
 app.configure(function () {
