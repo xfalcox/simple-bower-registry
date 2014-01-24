@@ -20,7 +20,6 @@ if (fs.existsSync(storage)) {
 	// git config insteadOf
 	packages.forEach(function(entry) {
 		entry.url = entry.url.replace('git://', 'https://');
-		});
 	});
 }
 
